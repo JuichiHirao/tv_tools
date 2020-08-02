@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 
 class TvRecordedData:
@@ -18,8 +19,44 @@ class TvRecordedData:
         self.programName = ''
         self.timeStr = ''
         self.detail = ''
+        self.remark = ''
         self.createdAt = None
         self.updatedAt = None
+
+    def get_update_column(self, recorded_data):
+        # recorded_data = TvRecordedData()
+        is_equal = True
+        remark = ''
+        now_date_str = datetime.strftime(datetime.now(), '%Y-%m-%d')
+        if self.ripStatus != recorded_data.ripStatus:
+            remark = 'rip [{}] <- [{}]'.format(self.ripStatus, recorded_data.ripStatus)
+            is_equal = False
+        if self.onAirDate != recorded_data.onAirDate:
+            remark = '{}, onAir [{}] <- [{}]'.format(remark, self.onAirDate, recorded_data.onAirDate)
+            is_equal = False
+        if self.minute != recorded_data.minute:
+            remark = '{}, min [{}] <- [{}]'.format(remark, self.minute, recorded_data.minute)
+            is_equal = False
+        if self.channelNo != recorded_data.channelNo:
+            remark = '{}, chNo [{}] <- [{}]'.format(remark, self.channelNo, recorded_data.channelNo)
+            is_equal = False
+        if self.channelSeq != recorded_data.channelSeq:
+            remark = '{}, chSeq [{}] <- [{}]'.format(remark, self.channelSeq, recorded_data.channelSeq)
+            is_equal = False
+        if self.detail != recorded_data.detail:
+            remark = '{}, detail'.format(remark, self.detail, recorded_data.detail)
+            print('detail')
+            is_equal = False
+
+        if is_equal is False:
+            re_remark = re.sub('^, ', '', remark.strip())
+            if recorded_data.remark is None or len(recorded_data.remark.strip()) <= 0:
+                remark = '{} {}'.format(now_date_str, re_remark)
+            else:
+                remark = '{} {}、{}'.format(now_date_str, re_remark, recorded_data.remark)
+                remark = re.sub('、$', '', remark.strip())
+
+        return is_equal, remark
 
     def get_rip_status(self, rip_status1, rip_status2):
         if rip_status1 is None and rip_status2 is None:
@@ -50,10 +87,10 @@ class TvRecordedData:
                                          , self.programName))
 
         # print('  {} {} {} '.format(str(self.channelNo).zfill(3), str(self.channelSeq).zfill(3), self.programName))
-        print('  diskNo [{}] [{}]'.format(self.diskNo, self.seqNo))
-        print('  rip    [{}]'.format(self.ripStatus))
-        print('  time   [{}] <-- [{}]'.format(self.minute, self.timeStr))
-        print('  detail [{}]'.format(self.detail))
+        print('  diskNo    [{}] [{}]'.format(self.diskNo, self.seqNo))
+        print('  rip       [{}]'.format(self.ripStatus))
+        print('  time(min) [{}] <-- [{}]'.format(self.minute, self.timeStr))
+        print('  detail    [{}]'.format(self.detail))
 
 
 class TvFileData:
