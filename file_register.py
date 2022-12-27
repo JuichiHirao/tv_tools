@@ -18,14 +18,18 @@ class TvContentsRegister:
 
     def __init__(self):
         self.tv_file_dao = TvFileDao()
-        self.base_dir = 'M:\\TV_CONTENTS'
-        # self.base_dir = 'M:\\TV_CONTENTS_PAST'
+        # self.base_dir = 'G:\\TV_CONTENTS'
+        self.base_dir = 'H:\\TV_CONTENTS'
+        self.gravure_dir = 'G:\\GRAVURE_CONTENTS'
+        # self.base_dir = 'G:\\TV_CONTENTS_PAST'
+        # self.label = 'MEDIA2020'
+        self.label = 'MEDIA2022'
         # self.base_dir = 'F:\\TVREC'
         # self.base_dir = 'F:\\JH-STORAGE\\SHARE0\\TVOUT_TEMP'
         # self.base_dir = 'F:\\JH-STORAGE\\SHARE0\\TVOUT'
 
-        self.is_check = True
-        # self.is_check = False
+        # self.is_check = True
+        self.is_check = False
 
     def __get_duration(self, pathname: str = ''):
 
@@ -38,10 +42,13 @@ class TvContentsRegister:
 
         return duration
 
+    def execute_gravure(self):
+        dir_id = self.tv_file_dao.get_dir_id(self.base_dir)
+
     def execute(self):
 
         dir_id = self.tv_file_dao.get_dir_id(self.base_dir)
-        print(dir_id)
+        # print(dir_id)
         if dir_id <= 0:
             print('store_idに存在しないパスが設定されました {}'.format(self.base_dir))
             exit(-1)
@@ -59,7 +66,7 @@ class TvContentsRegister:
             file_data.duration = self.__get_duration(str(p_file.resolve()))
             file_data.storeId = dir_id
             file_data.name = p_file.name
-            file_data.label = 'MEDIA2020'
+            file_data.label = self.label
             # data.label = 'MEDIA2018-TVREC'
             file_data.source = 'my'
             p_file_stat = p_file.stat()
@@ -68,9 +75,16 @@ class TvContentsRegister:
             file_data.set_time()
             file_data.print()
             if self.is_check is False:
+                print('execute {}'.format(file_data.name))
                 self.tv_file_dao.export(file_data)
+            else:
+                print('check {}'.format(file_data.name))
 
             # idx = idx + 1
+
+        print('')
+        print('base_dir {}'.format(self.base_dir))
+        print('label {}'.format(self.label))
 
     def update_target_duration(self):
         data_list = self.tv_file_dao.get_where_list('WHERE time is null and file_date >= "2020-06-01"')

@@ -45,7 +45,7 @@ class TvRecordedData:
             is_equal = False
         if self.detail != recorded_data.detail:
             remark = '{}, detail'.format(remark, self.detail, recorded_data.detail)
-            print('detail')
+            # print('detail')
             is_equal = False
 
         if is_equal is False:
