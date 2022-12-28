@@ -567,6 +567,54 @@ class TvFileDao(MysqlBase):
 
         return data_list
 
+    def get_where_list(self, where_sql: str = '', param_list: list = []):
+
+        sql = 'SELECT id' \
+              '  , contents_id, detail_id, store_id, label ' \
+              '  , `name`, source, duration, `time` ' \
+              '  , video_info, comment, `size`, priority_num ' \
+              '  , file_date, file_status,quality, remark ' \
+              '  , rating1, rating2 ' \
+              '  , created_at, updated_at ' \
+              '  FROM tv.file '
+
+        if len(where_sql) > 0:
+            sql = '{} {}'.format(sql, where_sql)
+            self.cursor.execute(sql, param_list)
+        else:
+            self.cursor.execute(sql)
+
+        rs = self.cursor.fetchall()
+
+        data_list = []
+        for row in rs:
+            data = TvFileData()
+            data.id = row[0]
+            data.contentsId = row[1]
+            data.detailId = row[2]
+            data.storeId = row[3]
+            data.label = row[4]
+            data.name = row[5]
+            data.source = row[6]
+            data.duration = row[7]
+            data.time = row[8]
+            data.videoInfo = row[9]
+            data.comment = row[10]
+            data.size = row[11]
+            data.priorityNUmber = row[12]
+            data.fileDate = row[13]
+            data.fileStatus = row[14]
+            data.quality = row[15]
+            data.remark = row[16]
+            data.rating1 = row[17]
+            data.rating2 = row[18]
+            data.createdAt = row[19]
+            data.updatedAt = row[20]
+
+            data_list.append(data)
+
+        return data_list
+
     def is_exist(self, filename: str = ''):
 
         sql = 'SELECT id FROM tv.file WHERE name = %s '
