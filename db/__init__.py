@@ -4,6 +4,7 @@ from data import TvRecordedData
 from data import TvProgramData
 from data import TvFileData
 from data import TvChannelData
+from data import TvDisk
 
 
 class MysqlBase:
@@ -501,6 +502,67 @@ class TvProgramDao(MysqlBase):
                                   , program_data.startDateStr, program_data.endDate, program_data.endDateStr, program_data.detail
                                   )
                             )
+
+        self.conn.commit()
+
+class TvDiskDao(MysqlBase):
+
+    def get_where_list(self, where_sql: str = '', param_list: list = []):
+
+        sql = 'SELECT id' \
+              '  , `no`, label, path' \
+              '  , created_at, updated_at ' \
+              '  FROM tv.disk ORDER BY `no`'
+
+        if len(where_sql) > 0:
+            sql = '{} {}'.format(sql, where_sql)
+            self.cursor.execute(sql, param_list)
+        else:
+            self.cursor.execute(sql)
+
+        rs = self.cursor.fetchall()
+
+        data_list = []
+        for row in rs:
+            data = TvDisk()
+            data.id = row[0]
+            data.no = row[1]
+            data.label = row[2]
+            data.path = row[3]
+            data.createdAt = row[4]
+            data.updatedAt = row[5]
+
+            data_list.append(data)
+
+        return data_list
+
+    def update_no(self, no: int = -1, disk_id: int = -1):
+
+        sql = 'UPDATE tv.disk' \
+              '  SET no = %s ' \
+              '  WHERE id = %s '
+
+        self.cursor.execute(sql, (no, disk_id))
+
+        self.conn.commit()
+
+    def update_path(self, path: str = '', disk_id: int = -1):
+
+        sql = 'UPDATE tv.disk' \
+              '  SET path = %s ' \
+              '  WHERE id = %s '
+
+        self.cursor.execute(sql, (path, disk_id))
+
+        self.conn.commit()
+
+    def update_label(self, label: str = '', disk_id: int = -1):
+
+        sql = 'UPDATE tv.disk' \
+              '  SET label = %s ' \
+              '  WHERE id = %s '
+
+        self.cursor.execute(sql, (label, disk_id))
 
         self.conn.commit()
 

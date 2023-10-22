@@ -243,3 +243,15 @@ class TvProgramData:
 
         print('  {}'.format(self.detail))
         print('  createdAt {}  updatedAt {}'.format(self.createdAt, self.updatedAt))
+
+
+class TvDisk:
+
+    def __init__(self):
+
+        self.id = -1
+        self.no = -1
+        self.label = ''
+        self.path = ''
+        self.createdAt = None
+        self.updatedAt = None
