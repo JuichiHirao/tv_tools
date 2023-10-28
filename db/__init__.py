@@ -536,6 +536,14 @@ class TvDiskDao(MysqlBase):
 
         return data_list
 
+    def export(self, no: int = -1, label: str = '', path: str = ''):
+
+        sql = 'INSERT INTO tv.disk(no, label, path)  VALUES(%s, %s, %s)'
+
+        self.cursor.execute(sql, (no, label, path))
+
+        self.conn.commit()
+
     def update_no(self, no: int = -1, disk_id: int = -1):
 
         sql = 'UPDATE tv.disk' \

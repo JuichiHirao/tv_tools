@@ -27,7 +27,7 @@ class TvContentsRegister:
         # if dir_id <= 0:
         #     print('store_idに存在しないパスが設定されました {}'.format(self.base_dir))
         #     exit(-1)
-        program_list = self.tv_program_dao.get_where_list('WHERE channel_no = %s', [644])
+        program_list = self.tv_program_dao.get_where_list('WHERE channel_no IN (644, 665)')
 
         print('{} 件'.format(len(program_list)))
         for program_data in program_list:

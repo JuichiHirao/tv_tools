@@ -4,8 +4,8 @@ import re
 import sys
 import glob
 from pathlib import Path
-from db import TvDiskDao
-from data import TvFileData
+from db import TvDiskDao, TvRecordedDao
+from data import TvRecordedData
 from datetime import datetime
 from moviepy.editor import VideoFileClip
 
@@ -21,6 +21,8 @@ class DiskNoSetting:
 
     def __init__(self):
         self.tv_disk_dao = TvDiskDao()
+        self.tv_recorded_dao = TvRecordedDao()
+
         # self.base_dir = 'G:\\TV_CONTENTS'
         self.base_dir = 'H:\\TV_CONTENTS'
         self.gravure_dir = 'G:\\GRAVURE_CONTENTS'
@@ -68,6 +70,82 @@ class DiskNoSetting:
                 continue
 
         print(err_count)
+
+    def check_missing_elements(self, arr):
+        # 配列をソート
+        sorted_arr = sorted(arr)
+
+        # 配列の最初と最後の要素を取得
+        start = sorted_arr[0]
+        end = sorted_arr[-1]
+
+        # 完全な範囲を作成
+        full_range = set(range(start, end + 1))
+
+        # 元の配列をsetに変換
+        arr_set = set(arr)
+
+        # 抜けている要素を見つける
+        missing_elements = full_range - arr_set
+
+        if missing_elements:
+            print("Missing elements:", sorted(list(missing_elements)))
+        else:
+            print("There are no missing elements.")
+
+    # 使用例
+    # arr = [1, 2, 4, 6, 7, 8]
+    # check_missing_elements(arr)
+
+    def pickup_disk_from_recorded(self, is_checked: bool = True):
+
+        data_list = self.tv_recorded_dao.get_where_list('WHERE created_at >= "2023-01-01"')
+        disk_data_list = self.tv_disk_dao.get_where_list()
+        # print(dir_id)
+
+        recorded_disk_no_list = []
+        for data in data_list:
+            recorded_disk_no_list.append(data.diskNo)
+
+        recorded_disk_no_list = sorted(recorded_disk_no_list)
+        distinct_recorded_list = list(set(recorded_disk_no_list))
+        distinct_recorded_list = sorted(distinct_recorded_list)
+        # print(sorted(distinct_recorded_list))
+
+        base_path = 'R:\\BDR-Backup'
+        for recorded_disk_no in distinct_recorded_list:
+            m_recorded = re.search('^[0-9]{4}', recorded_disk_no)
+            if m_recorded:
+                # print(m_recorded.group())
+                disk_no = int(m_recorded.group())
+                filter_list = list(filter(lambda disk_data: disk_data.no is not None and disk_data.no == disk_no, disk_data_list))
+                if len(filter_list) == 1:
+                    # print(f'exist {filter_list[0].no}')
+                    pass
+                elif len(filter_list) == 0:
+                    pathname = os.path.join(base_path, recorded_disk_no)
+                    if os.path.isdir(pathname):
+                        print(f'exist {disk_no} [{recorded_disk_no}]')
+                    else:
+                        print(f'not exist {disk_no} [{recorded_disk_no}] [{base_path}]')
+                        sys.exit(-1)
+
+                    if is_checked is False:
+                        self.tv_disk_dao.export(disk_no, recorded_disk_no, base_path)
+            else:
+                print(f'not found {recorded_disk_no}')
+
+        no_list = []
+        disk_data_list = self.tv_disk_dao.get_where_list()
+        for data in disk_data_list:
+            if data.no is None:
+                continue
+            no_list.append(data.no)
+        print(f'max {max(no_list)}')
+
+        self.check_missing_elements(no_list)
+
+        return
 
     def update_path(self):
 
@@ -157,4 +235,5 @@ if __name__ == '__main__':
     dick_no_setting = DiskNoSetting()
     # dick_no_setting.pickup_no_from_label()
     # dick_no_setting.update_path()
-    dick_no_setting.exist_check()
+    # dick_no_setting.exist_check()
+    dick_no_setting.pickup_disk_from_recorded(False)
