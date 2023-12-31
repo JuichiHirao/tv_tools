@@ -37,7 +37,7 @@ class TvContentsRegister:
         # print('base_dir {}'.format(self.base_dir))
         # print('label {}'.format(self.label))
 
-    def get_channnel_list(self, channel_no, channel_seq):
+    def get_channel_list(self, channel_no, channel_seq):
 
         recorded_list = self.tv_recorded_dao.get_where_list('WHERE channel_no = %s AND channel_seq = %s'
                                                             , [channel_no, channel_seq])
@@ -45,7 +45,8 @@ class TvContentsRegister:
         print('{} 件'.format(len(recorded_list)))
         detail_list = []
         for recorded_data in recorded_list:
-            detail_list.append(recorded_data.detail)
+            detail = recorded_data.detail if recorded_data.detail is not None else ''
+            detail_list.append(detail)
 
         sort_list = sorted(detail_list)
         for detail in sort_list:
@@ -80,7 +81,7 @@ if __name__ == '__main__':
         tv_contents_register.get_list()
     else:
         tv_contents_register = TvContentsRegister()
-        tv_contents_register.get_channnel_list(channel_no, channel_seq)
-        # tv_contents_register.get_channnel_list(644, 1)
+        tv_contents_register.get_channel_list(channel_no, channel_seq)
+        # tv_contents_register.get_channel_list(644, 1)
     # local_html_arrangement = LocalHtmlArrangement()
     # local_html_arrangement.execute_arrangement(action_or_dir_name)
