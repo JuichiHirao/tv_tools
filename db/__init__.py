@@ -483,6 +483,41 @@ class TvProgramDao(MysqlBase):
 
         return False
 
+    def get_data(self, channel_no: int = -1, channel_seq: int = -1):
+
+        sql = """
+          SELECT id
+               , channel_no, channel_seq, `name`, short_name
+               , start_date, start_date_str, end_date, end_date_str
+               , detail, created_at, updated_at
+             FROM tv.program WHERE channel_no = %s and channel_seq = %s
+        """
+
+        self.cursor.execute(sql, (channel_no, channel_seq))
+
+        rs = self.cursor.fetchall()
+
+        for row in rs:
+            program_data = TvProgramData()
+            program_data.id = row[0]
+            program_data.channelNo = row[1]
+            program_data.channelSeq = row[2]
+            # program_data.channelName = sheet.cell(row=row_idx, column=col_no_channel_name).value
+            program_data.name = row[3]
+            program_data.shortName = row[4]
+            program_data.startDate = row[5]
+            program_data.startDateStr = row[6]
+            program_data.endDate = row[7]
+            program_data.endDateStr = row[8]
+            program_data.detail = row[9]
+            program_data.createdAt = row[10]
+            program_data.updatedAt = row[11]
+            # program_data.print()
+
+            return program_data
+
+        return None
+
     def export(self, program_data: TvProgramData = None):
 
         if program_data is None:
