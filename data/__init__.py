@@ -44,7 +44,7 @@ class TvRecordedData:
             remark = '{}, chSeq [{}] <- [{}]'.format(remark, self.channelSeq, recorded_data.channelSeq)
             is_equal = False
         if self.detail != recorded_data.detail:
-            remark = '{}, detail'.format(remark, self.detail, recorded_data.detail)
+            remark = '{}, detail [{}] <- [{}]'.format(remark, self.detail, recorded_data.detail)
             # print('detail')
             is_equal = False
 
@@ -226,8 +226,13 @@ class TvProgramData:
 
         return
 
+    def log_output(self, logger):
+        logger.debug(f'[{self.id}] 【{self.name}】 [{self.detail}]')
+        logger.debug(f'  [{str(self.channelNo).zfill(3)}] [{str(self.channelSeq).zfill(3)}]')
+        logger.debug(f'  [{self.startDate}] ～ [{self.endDate}]')
+
     def print(self):
-        print('{} {} 【{}】 '.format(str(self.channelNo).zfill(3), str(self.channelSeq).zfill(3), self.name))
+        print('[{}] [{}] 【{}】 '.format(str(self.channelNo).zfill(3), str(self.channelSeq).zfill(3), self.name))
         print('  {}'.format(self.channelName))
         print('  {}'.format(self.shortName))
 

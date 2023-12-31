@@ -236,3 +236,4 @@ if __name__ == '__main__':
     tv_contents_register.export2('TV録画2')
     # tv_contents_register.export2('0001-1114')
     tv_contents_register.export2('ZIP')
+    tv_contents_register.export2('2030')

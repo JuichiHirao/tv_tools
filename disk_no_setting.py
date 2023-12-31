@@ -125,9 +125,9 @@ class DiskNoSetting:
                 elif len(filter_list) == 0:
                     pathname = os.path.join(base_path, recorded_disk_no)
                     if os.path.isdir(pathname):
-                        print(f'exist {disk_no} [{recorded_disk_no}]')
+                        print(f'dir exist {disk_no} [{recorded_disk_no}]')
                     else:
-                        print(f'not exist {disk_no} [{recorded_disk_no}] [{base_path}]')
+                        print(f'dir not exist {disk_no} [{recorded_disk_no}] [{base_path}]')
                         sys.exit(-1)
 
                     if is_checked is False:
@@ -236,4 +236,5 @@ if __name__ == '__main__':
     # dick_no_setting.pickup_no_from_label()
     # dick_no_setting.update_path()
     # dick_no_setting.exist_check()
+    # dick_no_setting.pickup_disk_from_recorded()
     dick_no_setting.pickup_disk_from_recorded(False)
