@@ -433,7 +433,7 @@ class TvProgramDao(MysqlBase):
 
         self.conn.commit()
 
-    def get_where_list(self, where_sql: str = '', param_list: list = []):
+    def get_where_list(self, where_sql: str = '', param_list: list = None):
 
         sql = 'SELECT id' \
               '  , channel_no, channel_seq, `name`, short_name ' \
@@ -483,7 +483,7 @@ class TvProgramDao(MysqlBase):
 
         return False
 
-    def get_data(self, channel_no: int = -1, channel_seq: int = -1):
+    def get_data(self, channel_no: int = -1, channel_seq: int = -1) -> TvProgramData:
 
         sql = """
           SELECT id
@@ -927,7 +927,7 @@ class TvDao(MysqlBase):
 
 class TvRecordedDao(MysqlBase):
 
-    def get_where_list(self, where_sql: str = '', param_list: list = []):
+    def get_where_list(self, where_sql: str = '', param_list: list = None):
 
         sql = 'SELECT id' \
               '  , disk_no, seq_no, rip_status, on_air_date ' \
@@ -938,7 +938,10 @@ class TvRecordedDao(MysqlBase):
 
         if len(where_sql) > 0:
             sql = '{} {}'.format(sql, where_sql)
-            self.cursor.execute(sql, param_list)
+            if param_list is None:
+                self.cursor.execute(sql)
+            else:
+                self.cursor.execute(sql, param_list)
         else:
             self.cursor.execute(sql)
 
