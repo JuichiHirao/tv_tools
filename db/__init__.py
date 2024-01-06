@@ -442,7 +442,7 @@ class TvProgramDao(MysqlBase):
               '  , created_at, updated_at ' \
               '  FROM tv.program '
 
-        if len(where_sql) > 0:
+        if len(param_list) > 0:
             sql = '{} {}'.format(sql, where_sql)
             self.cursor.execute(sql, param_list)
         else:
