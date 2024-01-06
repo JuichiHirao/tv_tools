@@ -540,6 +540,36 @@ class TvProgramDao(MysqlBase):
 
         self.conn.commit()
 
+    def update(self, program_data: TvProgramData = None):
+
+        if program_data is None:
+            return
+
+        sql = """
+          UPDATE tv.program
+            SET
+              `name` = %s 
+              , short_name = %s 
+              , start_date = %s 
+              , start_date_str = %s 
+              , end_date = %s 
+              , end_date_str = %s 
+              , detail = %s 
+            WHERE id = %s
+        """
+
+        self.cursor.execute(sql, (program_data.name
+                                  , program_data.shortName
+                                  , program_data.startDate
+                                  , program_data.startDateStr
+                                  , program_data.endDate
+                                  , program_data.endDateStr
+                                  , program_data.detail
+                                  , program_data.id))
+
+        self.conn.commit()
+
+
 class TvDiskDao(MysqlBase):
 
     def get_where_list(self, where_sql: str = '', param_list: list = []):

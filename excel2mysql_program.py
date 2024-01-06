@@ -52,25 +52,53 @@ class TvProgramRegister:
                 logger.warning(f'cell_value is None or not int {row_idx} {program_number}')
                 continue
 
+            is_update = False
             program_data = TvProgramData()
             program_data.channelNo = program_number // 1000
             program_data.channelSeq = program_number % 1000
-            # program_data.channelName = sheet.cell(row=row_idx, column=col_no_channel_name).value
-            program_data.name = sheet.cell(row=row_idx, column=col_no_name).value
-            program_data.shortName = sheet.cell(row=row_idx, column=col_no_short_name).value
-            start_date = sheet.cell(row=row_idx, column=col_no_start_date).value
-            end_date = sheet.cell(row=row_idx, column=col_no_end_date).value
-            program_data.set_date(start_date, end_date)
-            program_data.detail = sheet.cell(row=row_idx, column=col_no_detail).value
-            # program_data.print()
 
             exist_data = self.program_dao.get_data(program_data.channelNo, program_data.channelSeq)
+
+            # UPDATE対象かの確認
+            update_column_list = []
+            program_data.name = sheet.cell(row=row_idx, column=col_no_name).value
+            if program_data.name is None or len(program_data.name.strip()) <= 0:
+                continue
+
+            if exist_data is not None and exist_data.name != program_data.name:
+                update_column_list.append(f'name {program_data.name} <- {exist_data.name}')
+                is_update = True
+
+            program_data.shortName = sheet.cell(row=row_idx, column=col_no_short_name).value
+            if exist_data is not None and exist_data.shortName != program_data.shortName:
+                update_column_list.append(f'short_name {program_data.shortName} <- {exist_data.shortName}')
+                is_update = True
+
+            program_data.startDate = sheet.cell(row=row_idx, column=col_no_start_date).value
+            if exist_data is not None and exist_data.startDate != program_data.startDate:
+                update_column_list.append(f'start_date {program_data.startDate} <- {exist_data.startDate}')
+                is_update = True
+
+            program_data.endDate = sheet.cell(row=row_idx, column=col_no_end_date).value
+            if exist_data is not None and exist_data.endDate != program_data.endDate:
+                update_column_list.append(f'end_date {program_data.endDate} <- {exist_data.endDate}')
+                is_update = True
+
+            program_data.set_date(program_data.startDate, program_data.endDate)
+
+            program_data.detail = sheet.cell(row=row_idx, column=col_no_detail).value
+            if exist_data is not None and exist_data.detail != program_data.detail:
+                update_column_list.append(f'detail {program_data.detail} <- {exist_data.detail}')
+                is_update = True
+
             if exist_data is not None:
-                # logger.info(f'program_data is exist {program_data.channelNo} {program_data.channelSeq}')
-                # exist_data.log_output(logger)
-                pass
+                if is_update:
+                    logger.info(f'exist update target program_data {program_data.channelNo} {program_data.channelSeq} {update_column_list}')
+                    self.program_dao.update(program_data)
+                # else:
+                #     logger.info(f'same program_data no update {program_data.channelNo} {program_data.channelSeq}')
             else:
-                logger.info(f'not exist register target program_data {program_data.channelNo} {program_data.channelSeq}')
+                logger.info(f'not exist register target program_data {program_data.channelNo} {program_data.channelSeq} {program_data.name}')
                 self.program_dao.export(program_data)
 
             # if row_idx > 10:
