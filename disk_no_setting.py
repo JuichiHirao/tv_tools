@@ -112,7 +112,7 @@ class DiskNoSetting:
         distinct_recorded_list = sorted(distinct_recorded_list)
         # print(sorted(distinct_recorded_list))
 
-        base_path = 'R:\\BDR-Backup'
+        base_path = 'V:\\BDR-Backup'
         for recorded_disk_no in distinct_recorded_list:
             m_recorded = re.search('^[0-9]{4}', recorded_disk_no)
             if m_recorded:
@@ -176,7 +176,9 @@ class DiskNoSetting:
                 self.tv_disk_dao.update_path('P:\\BDR-Backup', disk_data.id)
             elif 1781 <= disk_data.no <= 2113:
                 self.tv_disk_dao.update_path('Q:\\BDR-Backup', disk_data.id)
-            elif 2114 <= disk_data.no <= 3000:
+            elif 2114 <= disk_data.no <= 2443:
+                self.tv_disk_dao.update_path('R:\\BDR-Backup', disk_data.id)
+            elif 2444 <= disk_data.no <= 2500:
                 self.tv_disk_dao.update_path('R:\\BDR-Backup', disk_data.id)
 
         # print(err_count)
