@@ -23,6 +23,8 @@ search_condition_csv = """
 2,グラっちゃお,p
 3,ミュージックバンク,p
 4,トップテン,p
+5,鎧美女,p
+6,The Covers,p
 """
 def find_all_files(directory):
     for root, dirs, files in os.walk(directory):
@@ -53,21 +55,19 @@ class TvContentsRegister:
             self.search_condition_list.append(row)
             # print(row)
 
-    def get_list(self):
+    def get_list(self, keyword: str = ''):
 
         # dir_id = self.tv_file_dao.get_dir_id(self.base_dir)
         # if dir_id <= 0:
         #     print('store_idに存在しないパスが設定されました {}'.format(self.base_dir))
         #     exit(-1)
-        program_list = self.tv_program_dao.get_where_list('WHERE channel_no IN (644, 665)')
+        if len(keyword) > 0:
+            param_list = [f'%{keyword}%']
+            program_list = self.tv_program_dao.get_where_list('WHERE name LIKE %s', param_list)
+        else:
+            program_list = self.tv_program_dao.get_where_list('WHERE channel_no IN (644, 665)')
 
-        print('{} 件'.format(len(program_list)))
-        for program_data in program_list:
-            print('{} {} {}'.format(program_data.channelNo, program_data.channelSeq, program_data.name))
-
-        # print('')
-        # print('base_dir {}'.format(self.base_dir))
-        # print('label {}'.format(self.label))
+        return program_list
 
     def get_list_by_condition(self, condition_data: list = None):
 
@@ -88,15 +88,13 @@ class TvContentsRegister:
         recorded_list = self.tv_recorded_dao.get_where_list('WHERE channel_no = %s AND channel_seq = %s'
                                                             , [channel_no, channel_seq])
 
-        print('{} 件'.format(len(recorded_list)))
-        detail_list = []
-        for recorded_data in recorded_list:
-            detail = recorded_data.detail if recorded_data.detail is not None else ''
-            detail_list.append(detail)
+        # print('{} 件'.format(len(recorded_list)))
+        # detail_list = []
+        # for recorded_data in recorded_list:
+        #     detail = recorded_data.detail if recorded_data.detail is not None else ''
+        #     detail_list.append(detail)
 
-        sort_list = sorted(detail_list)
-        for detail in sort_list:
-            print('{}'.format(detail))
+        return recorded_list
 
     def get_recorded_list(self, sql_where):
 
@@ -144,6 +142,7 @@ if __name__ == '__main__':
         logger.info('param1 [pgm or list or channel_no], param2 [channel_seq]')
         logger.info('param1 p[0-9]{1,3} keyword(任意)')
         logger.info('param1 channel_no[0-9]{1,4}, param2 [channel_seq]')
+        logger.info('param1 list param2 keyword')
         tv_contents_register = TvContentsRegister()
         for data in tv_contents_register.search_condition_list:
             logger.info(data)
@@ -177,10 +176,39 @@ if __name__ == '__main__':
                     if len(sys.argv) >= 3:
                         channel_seq = int(sys.argv[2])
                     logger.info(f'channel_search no {channel_no}  seq {channel_seq}')
+                    tv_contents_register = TvContentsRegister()
+                    program_list = tv_contents_register.tv_program_dao.get_where_list('WHERE channel_no = %s AND channel_seq = %s', [channel_no, channel_seq])
+                    if len(program_list) > 1:
+                        logger.info('channel_no, channel_seq が重複しているデータが複数あります')
+                        for program_data in program_list:
+                            logger.info(f'  id [{program_data.id}] {program_data.name} {program_data.detail}')
+
+                    program_data = program_list[0]
+                    logger.info(f'[{channel_no}:{channel_seq}] {program_list[0].name}')
+                    recorded_list = tv_contents_register.get_channel_list(channel_no, channel_seq)
+
+                    sorted_recorded_list = sorted(recorded_list, key=lambda x: x.onAirDate, reverse=True)
+
+                    for recorded_data in sorted_recorded_list:
+                        on_air_date_str = recorded_data.onAirDate.strftime('%Y-%m-%d')
+                        logger.info(f'{on_air_date_str} [{recorded_data.diskNo}:{recorded_data.seqNo}] {recorded_data.detail} ')
+
+                    logger.info(f'[{channel_no}:{channel_seq}] {program_list[0].name}')
+                    sys.exit(0)
 
     if action_or_dir_name == 'list':
+        if len(sys.argv) >= 3:
+            keyword = sys.argv[2]
+        else:
+            keyword = ''
         tv_contents_register = TvContentsRegister()
-        tv_contents_register.get_list()
+        result_list = tv_contents_register.get_list(keyword)
+        if result_list is None:
+            logger.info(f'keyword [{keyword}]で対象無し')
+            sys.exit(0)
+        logger.info('{} 件'.format(len(result_list)))
+        for result_data in result_list:
+            logger.info(f'{result_data.channelNo} {result_data.channelSeq} [{result_data.name}]\n    [{result_data.shortName}] detail [{result_data.detail}]')
     elif action_or_dir_name == 'pgm':
         if len(sys.argv) >= 3:
             keyword = sys.argv[2]
@@ -190,9 +218,6 @@ if __name__ == '__main__':
             logger.info(f'keyword {keyword} {where_sql}')
             result_list = tv_contents_register.tv_program_dao.get_where_list(where_sql, param_list)
             for result_data in result_list:
-                logger.info(f'{result_data.channelNo} {result_data.channelSeq} {result_data.name}')
+                logger.info(f'{result_data.channelNo} {result_data.channelSeq} {result_data.name} {result_data.detail}')
         else:
             logger.info(f'pgm not found argv[2] keyword')
-    else:
-        tv_contents_register = TvContentsRegister()
-        tv_contents_register.get_channel_list(channel_no, channel_seq)
