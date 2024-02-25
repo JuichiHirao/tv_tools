@@ -212,6 +212,7 @@ class TvProgramData:
                     self.startDate = start_date
         except:
             print('except start_date {}'.format(start_date))
+            self.startDate = None
             self.startDateStr = start_date
 
         try:
@@ -222,6 +223,7 @@ class TvProgramData:
                     self.endDate = end_date
         except:
             print('except end_date {}'.format(end_date))
+            self.endDate = None
             self.endDateStr = end_date
 
         return

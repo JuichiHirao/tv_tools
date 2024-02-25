@@ -540,7 +540,7 @@ class TvProgramDao(MysqlBase):
 
         self.conn.commit()
 
-    def update(self, program_data: TvProgramData = None):
+    def update(self, program_data: TvProgramData = None, program_id: int = -1):
 
         if program_data is None:
             return
@@ -565,7 +565,7 @@ class TvProgramDao(MysqlBase):
                                   , program_data.endDate
                                   , program_data.endDateStr
                                   , program_data.detail
-                                  , program_data.id))
+                                  , program_id))
 
         self.conn.commit()
 

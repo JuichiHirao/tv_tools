@@ -45,6 +45,7 @@ class TvProgramRegister:
         wb = openpyxl.load_workbook(self.excel_file)
         sheet = wb['番組名']
         max_row = sheet.max_row + 1
+        logger.info(f'max_row {max_row}')
         # rows = sheet['A1':'G4000']
         for row_idx in range(1, max_row):
             program_number = sheet.cell(row=row_idx, column=col_no_number).value
@@ -56,6 +57,9 @@ class TvProgramRegister:
             program_data = TvProgramData()
             program_data.channelNo = program_number // 1000
             program_data.channelSeq = program_number % 1000
+
+            if program_data.channelNo == 663 and program_data.channelSeq == 472:
+                idx_idx = 0
 
             exist_data = self.program_dao.get_data(program_data.channelNo, program_data.channelSeq)
 
@@ -91,10 +95,12 @@ class TvProgramRegister:
                 update_column_list.append(f'detail {program_data.detail} <- {exist_data.detail}')
                 is_update = True
 
+            # if is_update:
+            #     logger.info(f'update_column_list {update_column_list}')
             if exist_data is not None:
                 if is_update:
                     logger.info(f'exist update target program_data {program_data.channelNo} {program_data.channelSeq} {update_column_list}')
-                    self.program_dao.update(program_data)
+                    self.program_dao.update(program_data, exist_data.id)
                 # else:
                 #     logger.info(f'same program_data no update {program_data.channelNo} {program_data.channelSeq}')
             else:
