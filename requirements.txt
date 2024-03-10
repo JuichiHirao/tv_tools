@@ -1,0 +1,3 @@
+PyYAML
+moviepy
+mysql-connector-python
