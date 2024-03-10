@@ -2,6 +2,18 @@ from datetime import datetime
 import re
 
 
+class TvStoreData:
+
+    def __init__(self):
+
+        self.id = -1
+        self.name = ''
+        self.path = ''
+        self.remark = ''
+        self.createdAt = None
+        self.updatedAt = None
+
+
 class TvRecordedData:
 
     def __init__(self):
@@ -118,6 +130,38 @@ class TvFileData:
         self.rating2 = 0
         self.createdAt = None
         self.updatedAt = None
+
+    def set_video_info(self):
+        video_size_list = ['2160p', '1080[ip]']
+        # m_video_size = re.search('2160p', self.name)
+        # m_video_size = re.search('1080[ip]', self.name)
+        video_encode_list = ['H26[45]', 'HEVC']
+        # m_encode_info = re.search('H26[45]', self.name)
+        m_audio_info = re.search('AAC', self.name)
+
+        video_info_list = []
+        for video_size in video_size_list:
+            m_video_size = re.search(video_size, self.name)
+            if m_video_size:
+                video_info_list.append(m_video_size.group())
+                break
+
+        for video_encode in video_encode_list:
+            m_video_encode = re.search(video_encode , self.name)
+            if m_video_encode:
+                video_info_list.append(m_video_encode.group())
+                break
+
+        # if m_video_size:
+        #     video_info_list.append(m_video_size.group())
+        # if m_encode_info:
+        #     video_info_list.append(m_encode_info.group())
+        if m_audio_info:
+            video_info_list.append(m_audio_info.group())
+
+        if len(video_info_list) > 0:
+            self.videoInfo = '.'.join(video_info_list)
+        # print(f'videoInfo: {self.videoInfo}')
 
     def set_time(self):
 

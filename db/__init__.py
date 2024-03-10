@@ -5,6 +5,7 @@ from data import TvProgramData
 from data import TvFileData
 from data import TvChannelData
 from data import TvDisk
+from data import TvStoreData
 
 
 class MysqlBase:
@@ -776,7 +777,7 @@ class TvFileDao(MysqlBase):
 
         self.conn.commit()
 
-    def export(self, file_data: TvFileData = None):
+    def export(self, file_data: TvFileData = None, is_check: bool = False):
 
         if file_data is None:
             return
@@ -798,7 +799,8 @@ class TvFileDao(MysqlBase):
                                   , file_data.fileDate, file_data.fileStatus)
                             )
 
-        self.conn.commit()
+        if is_check is False:
+            self.conn.commit()
 
 
 class TvDao(MysqlBase):
@@ -1033,3 +1035,50 @@ class TvRecordedDao(MysqlBase):
                             )
 
         self.conn.commit()
+
+
+class TvStoreDao(MysqlBase):
+
+    def get_where_list(self, where_sql: str = '', param_list: list = None):
+
+        sql = 'SELECT id' \
+              '  , name, path, remark, created_at, updated_at' \
+              '  FROM tv.real_dir '
+
+        if len(where_sql) > 0:
+            sql = '{} {}'.format(sql, where_sql)
+            if param_list is None:
+                self.cursor.execute(sql)
+            else:
+                self.cursor.execute(sql, param_list)
+        else:
+            self.cursor.execute(sql)
+
+        rs = self.cursor.fetchall()
+
+        data_list = []
+        for row in rs:
+            one_data = TvStoreData()
+            one_data.id = row[0]
+            one_data.name = row[1]
+            one_data.path = row[2]
+            one_data.remark = row[3]
+            one_data.createdAt = row[4]
+            one_data.updatedAt = row[5]
+
+            data_list.append(one_data)
+
+        return data_list
+
+    def is_exist(self, path: str = ''):
+
+        sql = 'SELECT id FROM tv.real_dir WHERE path = %s'
+
+        self.cursor.execute(sql, (path, ))
+
+        rs = self.cursor.fetchall()
+
+        for row in rs:
+            return True
+
+        return False
