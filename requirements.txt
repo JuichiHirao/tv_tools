@@ -1,2 +1,4 @@
 PyYAML
+moviepy
 mysql-connector-python
+openpyxl
