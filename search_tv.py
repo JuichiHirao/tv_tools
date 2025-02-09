@@ -143,6 +143,7 @@ if __name__ == '__main__':
         logger.info('param1 p[0-9]{1,3} keyword(任意)')
         logger.info('param1 channel_no[0-9]{1,4}, param2 [channel_seq]')
         logger.info('param1 list param2 keyword')
+        logger.info('param1 date(yyyy-mm-dd)')
         tv_contents_register = TvContentsRegister()
         for data in tv_contents_register.search_condition_list:
             logger.info(data)
