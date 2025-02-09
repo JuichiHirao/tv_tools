@@ -7,7 +7,7 @@ from pathlib import Path
 from db import TvDiskDao, TvRecordedDao
 from data import TvRecordedData
 from datetime import datetime
-from moviepy.editor import VideoFileClip
+from moviepy import VideoFileClip
 
 
 def find_all_files(directory):
