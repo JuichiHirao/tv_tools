@@ -1,9 +1,23 @@
 import openpyxl
+import sys
+import traceback
 from db import TvRecordedDao
 from db import TvProgramDao
 from data import TvRecordedData
 from datetime import datetime
+from logging import getLogger, DEBUG, Formatter, FileHandler, StreamHandler
 
+str_date = datetime.now().strftime('%Y%m%d')
+logger = getLogger("logger")
+logger.setLevel(DEBUG)
+
+log_filename = 'log\\tv_recorded_{}.log'.format(str_date)
+handler_file = FileHandler(filename=log_filename, encoding='utf-8')
+handler_file.setFormatter(Formatter("%(asctime)s %(levelname)4s %(message)s"))
+logger.addHandler(handler_file)
+handler_stream = StreamHandler(sys.stdout)
+handler_stream.setFormatter(Formatter("%(asctime)s %(levelname)8s %(message)s"))
+logger.addHandler(handler_stream)
 
 class TvContentsRegister:
 
@@ -22,9 +36,9 @@ class TvContentsRegister:
         program_id = -1
         cell_value = row[target_idx].value
         if cell_value is None:
-            print('program id None {} {}'.format(row[target_idx], cell_value))
+            logger.warning(f'program id None {row[target_idx]} {cell_value}')
         elif type(cell_value) is not int:
-            print('program id not int {} {} {}'.format(target_idx, row[target_idx], cell_value))
+            logger.warning(f'program id not int {target_idx} {row[target_idx]} {cell_value}')
         else:
             program_id = int(cell_value)
 
@@ -45,9 +59,9 @@ class TvContentsRegister:
     def __get_cell_data(self, target_idx, row):
         cell_value = row[target_idx].value
         if cell_value is not None and type(cell_value) is not str:
-            print('{} {} {} not type str'.format(target_idx, row[target_idx], cell_value))
+            logger.warning(f'{target_idx} {row[target_idx]} {cell_value} not type str')
         elif cell_value is not None and len(cell_value) > 0:
-            print('{} {} {}'.format(target_idx, row[target_idx], cell_value))
+            logger.info(f'{target_idx} {row[target_idx]} {cell_value}')
 
         return cell_value
 
@@ -66,13 +80,14 @@ class TvContentsRegister:
                     # on_air_datetime = datetime.strptime(date_value, '%Y/%m/%d')
                     on_air_date_str = datetime.strftime(date_value, '%Y/%m/%d')
         except:
-            print('{} except on_air_date {}'.format(row, on_air_datetime))
+            logger.error(traceback.print_exc())
+            logger.error(f'{row} except on_air_date {on_air_datetime}')
 
         is_time_flag = True
         if time_value is not None:
             time_list = time_value.split(':')
             if on_air_date_str is None:
-                print('{} on_air_date_strがNoneのため、SKIP'.format(row))
+                logger.info(f'{row} on_air_date_strがNoneのため、SKIP')
                 return None, False
             else:
                 if len(time_list) == 2:
@@ -104,7 +119,7 @@ class TvContentsRegister:
                 continue
 
             if row[0].value is None:
-                print('diskNoがないためSKIP')
+                logger.info('diskNoがないためSKIP')
                 continue
             tv_data = TvRecordedData()
             program_id = self.__check_program_id(7, row)
@@ -152,12 +167,12 @@ class TvContentsRegister:
                     tv_data.id = filter_list[0].id
                     tv_data.remark = remark
                     self.recorded_dao.update_all(tv_data)
-                    print('update target {} {} [{}]'.format(tv_data.diskNo, tv_data.seqNo, remark))
+                    logger.info(f'update target {tv_data.diskNo} {tv_data.seqNo} [{remark}]')
                 # else:
                 #     print('same data {} {}'.format(tv_data.diskNo, tv_data.seqNo))
             else:
                 self.recorded_dao.export(tv_data)
-                print('register target {} {}'.format(tv_data.diskNo, tv_data.seqNo))
+                logger.info(f'register target {tv_data.diskNo} {tv_data.seqNo}')
 
     def export2(self, sheet_name: str = ''):
         """
@@ -187,7 +202,7 @@ class TvContentsRegister:
 
             if row[0].value is None:
                 if row[1].value is None or row[3].value is None:
-                    print('diskNo ( seqNo & onAirDate ) がないためSKIP {}'.format(str(row[0])))
+                    logger.info(f'diskNo ( seqNo & onAirDate ) がないためSKIP {row[0]}')
                     continue
                 else:
                     disk_no = before_disk_no
@@ -219,13 +234,13 @@ class TvContentsRegister:
                 if is_equal is False:
                     tv_data.id = filter_list[0].id
                     tv_data.remark = remark
-                    print('update target {} {} [{}]'.format(tv_data.diskNo, tv_data.seqNo, remark))
+                    logger.info(f'update target {tv_data.diskNo} {tv_data.seqNo} [{remark}]')
                     if self.is_check is False:
                         self.recorded_dao.update_all(tv_data)
                 # else:
                 #     print('same data {} {}'.format(tv_data.diskNo, tv_data.seqNo))
             else:
-                print('register target {} {}'.format(tv_data.diskNo, tv_data.seqNo))
+                logger.info(f'register target {tv_data.diskNo} {tv_data.seqNo}')
                 if self.is_check is False:
                     self.recorded_dao.export(tv_data)
 
