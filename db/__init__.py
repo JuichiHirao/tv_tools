@@ -578,12 +578,14 @@ class TvDiskDao(MysqlBase):
         sql = 'SELECT id' \
               '  , `no`, label, path' \
               '  , created_at, updated_at ' \
-              '  FROM tv.disk ORDER BY `no`'
+              '  FROM tv.disk '
+              # '  FROM tv.disk ORDER BY `no`'
 
         if len(where_sql) > 0:
-            sql = '{} {}'.format(sql, where_sql)
+            sql = f'{sql} {where_sql} ORDER BY `no`'
             self.cursor.execute(sql, param_list)
         else:
+            sql = f'{sql} ORDER BY `no`'
             self.cursor.execute(sql)
 
         rs = self.cursor.fetchall()
@@ -929,6 +931,19 @@ class TvDao(MysqlBase):
 
 class TvRecordedDao(MysqlBase):
 
+    def get_distinct_disk_no(self):
+        # sql = 'SELECT distinct disk_label FROM tv.recorded WHERE disk_no is null OR disk_no <= 0'
+        sql = 'SELECT distinct disk_label FROM tv.recorded WHERE disk_no is null'
+
+        self.cursor.execute(sql)
+        rs = self.cursor.fetchall()
+
+        disk_list = []
+        for row in rs:
+            disk_list.append(row[0])
+
+        return disk_list
+
     def get_where_list(self, where_sql: str = '', param_list: list = None):
 
         sql = 'SELECT id' \
@@ -983,6 +998,23 @@ class TvRecordedDao(MysqlBase):
             return True
 
         return False
+
+    def update_disk_no(self, disk_no: int = -1, disk_label: str = ''):
+
+        if disk_no < -1 or len(disk_label) <= 0:
+            return
+
+        sql = """UPDATE tv.recorded 
+                   SET disk_no = %s 
+                   WHERE disk_label = %s"""
+
+        self.cursor.execute(sql, (disk_no, disk_label))
+        affected_rows = self.cursor.rowcount
+
+        self.conn.commit()
+
+        return affected_rows
+
 
     def update_all(self, recorded_data: TvRecordedData() = None):
 

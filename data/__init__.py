@@ -19,7 +19,8 @@ class TvRecordedData:
     def __init__(self):
 
         self.id = -1
-        self.diskNo = ''
+        self.diskLabel = ''
+        self.diskNo = -1
         self.seqNo = ''
         self.ripStatus = ''
         self.onAirDate = None
@@ -306,3 +307,6 @@ class TvDisk:
         self.path = ''
         self.createdAt = None
         self.updatedAt = None
+
+    def __repr__(self):
+        return f'id [{self.id}] no {self.no} label [{self.label}] {self.path}'
