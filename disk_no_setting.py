@@ -99,7 +99,7 @@ class DiskNoSetting:
 
     def pickup_disk_from_recorded(self, is_checked: bool = True):
 
-        data_list = self.tv_recorded_dao.get_where_list('WHERE created_at >= "2023-01-01"')
+        data_list = self.tv_recorded_dao.get_where_list('WHERE created_at >= "2024-01-01"')
         disk_data_list = self.tv_disk_dao.get_where_list()
         # print(dir_id)
 
@@ -112,7 +112,8 @@ class DiskNoSetting:
         distinct_recorded_list = sorted(distinct_recorded_list)
         # print(sorted(distinct_recorded_list))
 
-        base_path = 'V:\\BDR-Backup'
+        # base_path = 'V:\\BDR-Backup'
+        base_path = 'Y:\\BDR-Backup'
         for recorded_disk_no in distinct_recorded_list:
             m_recorded = re.search('^[0-9]{4}', recorded_disk_no)
             if m_recorded:
@@ -178,8 +179,8 @@ class DiskNoSetting:
                 self.tv_disk_dao.update_path('Q:\\BDR-Backup', disk_data.id)
             elif 2114 <= disk_data.no <= 2443:
                 self.tv_disk_dao.update_path('R:\\BDR-Backup', disk_data.id)
-            elif 2444 <= disk_data.no <= 2500:
-                self.tv_disk_dao.update_path('R:\\BDR-Backup', disk_data.id)
+            elif 2444 <= disk_data.no <= 2775:
+                self.tv_disk_dao.update_path('V:\\BDR-Backup', disk_data.id)
 
         # print(err_count)
 

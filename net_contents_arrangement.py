@@ -5,7 +5,7 @@ import glob
 from db import TvFileDao, TvStoreDao
 from data import TvFileData
 from datetime import datetime
-from moviepy.editor import VideoFileClip
+from moviepy import VideoFileClip
 
 
 def find_all_files(directory):
@@ -39,7 +39,7 @@ class NetContentsArrangement:
 
     def execute(self):
 
-        path_list = glob.glob(os.path.join(self.base_dir, '24*'))
+        path_list = glob.glob(os.path.join(self.base_dir, '*'))
         self.tv_file_dao = TvFileDao()
         self.tv_store_dao = TvStoreDao()
         where_sql = f'WHERE path = %s'
