@@ -443,7 +443,7 @@ class TvProgramDao(MysqlBase):
               '  , created_at, updated_at ' \
               '  FROM tv.program '
 
-        if len(param_list) > 0:
+        if param_list is not None and len(param_list) > 0:
             sql = '{} {}'.format(sql, where_sql)
             self.cursor.execute(sql, param_list)
         else:
@@ -947,7 +947,7 @@ class TvRecordedDao(MysqlBase):
     def get_where_list(self, where_sql: str = '', param_list: list = None):
 
         sql = 'SELECT id' \
-              '  , disk_no, seq_no, rip_status, on_air_date ' \
+              '  , disk_no, disk_label, seq_no, rip_status, on_air_date ' \
               '  , time_flag, `minute`, channel_no, channel_seq' \
               '  , detail, `source`, remark ' \
               '  , created_at, updated_at ' \
@@ -968,29 +968,30 @@ class TvRecordedDao(MysqlBase):
         for row in rs:
             one_data = TvRecordedData()
             one_data.id = row[0]
-            one_data.diskNo = str(row[1])
-            one_data.seqNo = str(row[2])
-            one_data.ripStatus = row[3]
-            one_data.onAirDate = row[4]
-            one_data.timeFlag = row[5]
-            one_data.minute = row[6]
-            one_data.channelNo = row[7]
-            one_data.channelSeq = row[8]
-            one_data.detail = row[9]
-            one_data.source = row[10]
-            one_data.remark = row[11]
-            one_data.createdAt = row[12]
-            one_data.updatedAt = row[13]
+            one_data.diskNo = row[1]
+            one_data.diskLabel = row[2]
+            one_data.seqNo = str(row[3])
+            one_data.ripStatus = row[4]
+            one_data.onAirDate = row[5]
+            one_data.timeFlag = row[6]
+            one_data.minute = row[7]
+            one_data.channelNo = row[8]
+            one_data.channelSeq = row[9]
+            one_data.detail = row[10]
+            one_data.source = row[11]
+            one_data.remark = row[12]
+            one_data.createdAt = row[13]
+            one_data.updatedAt = row[14]
 
             data_list.append(one_data)
 
         return data_list
 
-    def is_exist(self, disk_no: str = '', seq_no: str = ''):
+    def is_exist(self, disk_label: str = '', seq_no: str = ''):
 
-        sql = 'SELECT channel_no FROM tv.recorded WHERE disk_no = %s and seq_no = %s '
+        sql = 'SELECT channel_no FROM tv.recorded WHERE disk_label = %s and seq_no = %s '
 
-        self.cursor.execute(sql, (disk_no, seq_no))
+        self.cursor.execute(sql, (disk_label, seq_no))
 
         rs = self.cursor.fetchall()
 
@@ -1024,6 +1025,7 @@ class TvRecordedDao(MysqlBase):
         sql = 'UPDATE tv.recorded ' \
               '  SET ' \
               '  disk_no = %s ' \
+              '  , disk_label = %s ' \
               '  , seq_no = %s ' \
               '  , rip_status = %s ' \
               '  , on_air_date = %s ' \
@@ -1036,7 +1038,7 @@ class TvRecordedDao(MysqlBase):
               '  , remark = %s ' \
               '  WHERE id = %s '
 
-        self.cursor.execute(sql, (recorded_data.diskNo, recorded_data.seqNo, recorded_data.ripStatus, recorded_data.onAirDate
+        self.cursor.execute(sql, (recorded_data.diskNo, recorded_data.diskLabel, recorded_data.seqNo, recorded_data.ripStatus, recorded_data.onAirDate
                                   , recorded_data.timeFlag, recorded_data.minute, recorded_data.channelNo, recorded_data.channelSeq
                                   , recorded_data.detail, recorded_data.source, recorded_data.remark, recorded_data.id
                                   )
@@ -1050,17 +1052,17 @@ class TvRecordedDao(MysqlBase):
             return
 
         sql = 'INSERT INTO tv.recorded (' \
-              '  disk_no, seq_no, rip_status, on_air_date ' \
+              '  disk_no, disk_label, seq_no, rip_status, on_air_date ' \
               '  , time_flag, `minute`, channel_no, channel_seq' \
               '  , detail, source ' \
               '  ) ' \
               ' VALUES( ' \
-              '  %s, %s, %s, %s' \
+              '  %s, %s, %s, %s, %s' \
               '  , %s, %s, %s, %s' \
               '  , %s, %s ' \
               ' )'
 
-        self.cursor.execute(sql, (recorded_data.diskNo, recorded_data.seqNo, recorded_data.ripStatus, recorded_data.onAirDate
+        self.cursor.execute(sql, (recorded_data.diskNo, recorded_data.diskLabel, recorded_data.seqNo, recorded_data.ripStatus, recorded_data.onAirDate
                                   , recorded_data.timeFlag, recorded_data.minute, recorded_data.channelNo, recorded_data.channelSeq
                                   , recorded_data.detail, recorded_data.source
                                   )

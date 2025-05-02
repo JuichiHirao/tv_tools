@@ -1,14 +1,26 @@
 import os
-import pathlib
 import re
 import sys
 import glob
 from pathlib import Path
-from db import TvDiskDao, TvRecordedDao
-from data import TvRecordedData
-from datetime import datetime
-from moviepy import VideoFileClip
+from logging import getLogger, DEBUG, Formatter, FileHandler, StreamHandler
 
+from common import DiskTool
+from db import TvDiskDao, TvRecordedDao
+from datetime import datetime
+
+
+str_date = datetime.now().strftime('%Y%m%d')
+logger = getLogger("logger")
+logger.setLevel(DEBUG)
+
+log_filename = 'log\\disk_no_setting_{}.log'.format(str_date)
+handler_file = FileHandler(filename=log_filename, encoding='utf-8')
+handler_file.setFormatter(Formatter("%(asctime)s %(levelname)4s %(message)s"))
+logger.addHandler(handler_file)
+handler_stream = StreamHandler(sys.stdout)
+handler_stream.setFormatter(Formatter("%(asctime)s %(levelname)8s %(message)s"))
+logger.addHandler(handler_stream)
 
 def find_all_files(directory):
     for root, dirs, files in os.walk(directory):
@@ -66,10 +78,10 @@ class DiskNoSetting:
 
             except ValueError as verr:
                 err_count = err_count + 1
-                print(f'disk_no [{disk_data.label}] is not int edit[{label}]')
+                logger.info(f'disk_no [{disk_data.label}] is not int edit[{label}]')
                 continue
 
-        print(err_count)
+        logger.info(err_count)
 
     def check_missing_elements(self, arr):
         # 配列をソート
@@ -89,9 +101,10 @@ class DiskNoSetting:
         missing_elements = full_range - arr_set
 
         if missing_elements:
-            print("Missing elements:", sorted(list(missing_elements)))
+            sorted_missing_element_list = sorted(list(missing_elements))
+            logger.info(f'Missing elements: {sorted_missing_element_list}')
         else:
-            print("There are no missing elements.")
+            logger.info("There are no missing elements.")
 
     # 使用例
     # arr = [1, 2, 4, 6, 7, 8]
@@ -99,42 +112,43 @@ class DiskNoSetting:
 
     def pickup_disk_from_recorded(self, is_checked: bool = True):
 
-        data_list = self.tv_recorded_dao.get_where_list('WHERE created_at >= "2024-01-01"')
+        data_list = self.tv_recorded_dao.get_where_list('WHERE created_at >= "2024-11-01" AND disk_no IS NOT NULL')
         disk_data_list = self.tv_disk_dao.get_where_list()
         # print(dir_id)
 
-        recorded_disk_no_list = []
+        recorded_disk_info_list = []
         for data in data_list:
-            recorded_disk_no_list.append(data.diskNo)
+            recorded_disk_info_list.append(f'{data.diskNo},{data.diskLabel}')
 
-        recorded_disk_no_list = sorted(recorded_disk_no_list)
-        distinct_recorded_list = list(set(recorded_disk_no_list))
-        distinct_recorded_list = sorted(distinct_recorded_list)
-        # print(sorted(distinct_recorded_list))
+        distinct_recorded_disk_info_list = list(set(recorded_disk_info_list))
+        logger.info(f'disk_data_list {distinct_recorded_disk_info_list}')
 
-        # base_path = 'V:\\BDR-Backup'
-        base_path = 'Y:\\BDR-Backup'
-        for recorded_disk_no in distinct_recorded_list:
-            m_recorded = re.search('^[0-9]{4}', recorded_disk_no)
-            if m_recorded:
-                # print(m_recorded.group())
-                disk_no = int(m_recorded.group())
-                filter_list = list(filter(lambda disk_data: disk_data.no is not None and disk_data.no == disk_no, disk_data_list))
-                if len(filter_list) == 1:
-                    # print(f'exist {filter_list[0].no}')
+        disk_tool = DiskTool(logger)
+        for disk_info in distinct_recorded_disk_info_list:
+            disk_no, disk_label = disk_info.split(',')
+            disk_no = int(disk_no)
+            filter_list = list(filter(lambda disk_data: disk_data.no is not None and disk_data.no == disk_no, disk_data_list))
+            base_path = disk_tool.get_path(disk_no)
+            if len(filter_list) == 1:
+                # logger.info(f'登録済み {filter_list[0].no}')
+                pass
+            elif len(filter_list) == 0:
+                pathname = os.path.join(base_path, disk_label)
+                if os.path.isdir(pathname):
+                    logger.info(f'exist [{pathname}] no [{disk_no}] label [{disk_label}]')
+                else:
+                    logger.error(f'パス[{base_path}]が存在しないため強制終了 {disk_no} [{disk_label}]')
+                    sys.exit(-1)
+                if is_checked is False:
+                    self.tv_disk_dao.export(disk_no, disk_label, base_path)
+                    logger.info(f'export no [{disk_no}] label [{disk_label}] path [{base_path}]')
                     pass
-                elif len(filter_list) == 0:
-                    pathname = os.path.join(base_path, recorded_disk_no)
-                    if os.path.isdir(pathname):
-                        print(f'dir exist {disk_no} [{recorded_disk_no}]')
-                    else:
-                        print(f'dir not exist {disk_no} [{recorded_disk_no}] [{base_path}]')
-                        sys.exit(-1)
-
-                    if is_checked is False:
-                        self.tv_disk_dao.export(disk_no, recorded_disk_no, base_path)
+                else:
+                    logger.info(f'dry export no [{disk_no}] label [{disk_label}] path [{base_path}]')
             else:
-                print(f'not found {recorded_disk_no}')
+                logger.warning(f'many exist no [{disk_no}] label [{disk_label}] match_list({len(filter_list)}) {filter_list}')
+                pass
+
 
         no_list = []
         disk_data_list = self.tv_disk_dao.get_where_list()
@@ -142,47 +156,11 @@ class DiskNoSetting:
             if data.no is None:
                 continue
             no_list.append(data.no)
-        print(f'max {max(no_list)}')
+        logger.info(f'max {max(no_list)}')
 
         self.check_missing_elements(no_list)
 
         return
-
-    def update_path(self):
-
-        data_list = self.tv_disk_dao.get_where_list()
-        # print(dir_id)
-
-        # err_count = 0
-        for disk_data in data_list:
-            if disk_data.path is not None and len(disk_data.path.strip()) > 0:
-                continue
-
-            if disk_data.no is None:
-                print(f'disk_no is None {disk_data.id} {disk_data.label}')
-                continue
-            if 1 <= disk_data.no <= 268:
-                self.tv_disk_dao.update_path('J:\\BDR-Backup', disk_data.id)
-            elif 269 <= disk_data.no <= 530:
-                self.tv_disk_dao.update_path('K:\\BDR-Backup', disk_data.id)
-            elif 531 <= disk_data.no <= 785:
-                self.tv_disk_dao.update_path('I:\\BDR-Backup', disk_data.id)
-            elif 786 <= disk_data.no <= 1022:
-                self.tv_disk_dao.update_path('M:\\BDR-Backup', disk_data.id)
-            elif 1023 <= disk_data.no <= 1275:
-                self.tv_disk_dao.update_path('N:\\BDR-Backup', disk_data.id)
-            elif 1276 <= disk_data.no <= 1531:
-                self.tv_disk_dao.update_path('O:\\BDR-Backup', disk_data.id)
-            elif 1532 <= disk_data.no <= 1780:
-                self.tv_disk_dao.update_path('P:\\BDR-Backup', disk_data.id)
-            elif 1781 <= disk_data.no <= 2113:
-                self.tv_disk_dao.update_path('Q:\\BDR-Backup', disk_data.id)
-            elif 2114 <= disk_data.no <= 2443:
-                self.tv_disk_dao.update_path('R:\\BDR-Backup', disk_data.id)
-            elif 2444 <= disk_data.no <= 2775:
-                self.tv_disk_dao.update_path('V:\\BDR-Backup', disk_data.id)
-
-        # print(err_count)
 
     def exist_check(self):
 
@@ -241,3 +219,4 @@ if __name__ == '__main__':
     # dick_no_setting.exist_check()
     # dick_no_setting.pickup_disk_from_recorded()
     dick_no_setting.pickup_disk_from_recorded(False)
+    # dick_no_setting.pickup_disk_from_recorded(True)

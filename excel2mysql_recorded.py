@@ -1,8 +1,9 @@
 import openpyxl
 import sys
 import traceback
-from db import TvRecordedDao
-from db import TvProgramDao
+import re
+from db import TvRecordedDao, TvProgramDao, TvDiskDao
+from common import RecordedTool
 from data import TvRecordedData
 from datetime import datetime
 from logging import getLogger, DEBUG, Formatter, FileHandler, StreamHandler
@@ -21,28 +22,50 @@ logger.addHandler(handler_stream)
 
 class TvContentsRegister:
 
-    def __init__(self):
+    def __init__(self, range_disk_no: str = '', is_check: bool = True):
         self.recorded_dao = TvRecordedDao()
         self.program_dao = TvProgramDao()
         self.excel_file = 'C:\\Users\\JuichiHirao\\Dropbox\\jhdata\\Interest\\BD番組録画.xlsx'
+        self.recorded_tool = RecordedTool(logger)
+        self.disk_dao = TvDiskDao()
         # self.base_dir = 'F:\\TVREC'
 
-        # self.is_check = True
-        self.is_check = False
+        self.disk_no_start = 0
+        self.disk_no_end = 9999
+        if len(range_disk_no) > 0:
+            disk_no_list = re.split(',', range_disk_no)
+            if len(disk_no_list) == 1:
+                self.disk_no_start = int(disk_no_list[0])
+                self.disk_no_end = self.disk_no_start
+            elif len(disk_no_list) == 2:
+                self.disk_no_start = int(disk_no_list[0])
+                self.disk_no_end = int(disk_no_list[1])
+            else:
+                logger.warning(f'range_disk_no {range_disk_no} is invalid')
+        self.range_disk_no = range_disk_no
+        logger.info(f'range_disk_no start [{self.disk_no_start}] end [{self.disk_no_end}]')
+        self.is_check = is_check
 
-    def __check_program_id(self, target_idx, row):
-        # H829 不明なので、OK
-        # H2129 不明なので、OK
-        program_id = -1
-        cell_value = row[target_idx].value
-        if cell_value is None:
-            logger.warning(f'program id None {row[target_idx]} {cell_value}')
-        elif type(cell_value) is not int:
-            logger.warning(f'program id not int {target_idx} {row[target_idx]} {cell_value}')
+    def __get_channel_info(self, program_id_str: str = ''):
+
+        # 4K
+        if len(program_id_str) == 7 and program_id_str[0] == '4':
+            channel_no = int(program_id_str[0:4])
+            channel_seq = int(program_id_str[4:])
+        # 663 piggo(1000超え)
+        elif len(program_id_str) == 7 and program_id_str[0:3] == '663':
+            channel_no = int(program_id_str[0:3])
+            channel_seq = int(program_id_str[3:])
         else:
-            program_id = int(cell_value)
+            try:
+                channel_no = int(program_id_str[0:3])
+                channel_seq = int(program_id_str[3:])
+            except ValueError as verr:
+                logger.error(f'channel_no/seq [{program_id_str}] {verr}')
+                channel_no = 0
+                channel_seq = 0
 
-        return program_id
+        return channel_no, channel_seq
 
     def __get_minute(self, time_str):
 
@@ -56,38 +79,22 @@ class TvContentsRegister:
 
         return minute
 
-    def __get_cell_data(self, target_idx, row):
-        cell_value = row[target_idx].value
-        if cell_value is not None and type(cell_value) is not str:
-            logger.warning(f'{target_idx} {row[target_idx]} {cell_value} not type str')
-        elif cell_value is not None and len(cell_value) > 0:
-            logger.info(f'{target_idx} {row[target_idx]} {cell_value}')
+    def __get_on_air_datetime(self, date_value, time_value):
 
-        return cell_value
-
-    def __get_on_air_datetime(self, row, idx_date, idx_time):
-
-        on_air_datetime = None
         on_air_date_str = None
-        date_value = row[idx_date].value
-        time_value = str(row[idx_time].value)
-        # print('date_value {} time_value {}'.format(date_value, time_value))
+
         try:
             if date_value is not None:
-                if type(date_value) is not datetime:
-                    on_air_date_str = datetime.strftime(on_air_datetime, '%Y/%m/%d')
-                else:
-                    # on_air_datetime = datetime.strptime(date_value, '%Y/%m/%d')
-                    on_air_date_str = datetime.strftime(date_value, '%Y/%m/%d')
-        except:
+                on_air_date_str = datetime.strftime(date_value, '%Y/%m/%d')
+        except ValueError as vex:
             logger.error(traceback.print_exc())
-            logger.error(f'{row} except on_air_date {on_air_datetime}')
+            logger.error(f'except on_air_dateの変換中にエラー発生 date[{date_value}] time[{time_value}] {vex}')
 
         is_time_flag = True
         if time_value is not None:
             time_list = time_value.split(':')
             if on_air_date_str is None:
-                logger.info(f'{row} on_air_date_strがNoneのため、SKIP')
+                logger.info(f'on_air_date_strがNoneのため、SKIP date[{date_value}] time[{time_value}]')
                 return None, False
             else:
                 if len(time_list) == 2:
@@ -102,79 +109,7 @@ class TvContentsRegister:
 
         return on_air_datetime, is_time_flag
 
-    def export(self):
-        """
-        「TV録画」のシートの主要な列以外の列に何が入っているかの確認用
-        :return:
-        """
-        wb = openpyxl.load_workbook(self.excel_file)
-        ws = wb['TV録画']
-        # rows = ws['A540':'V570']
-        rows = ws['A1':'V9263']
-        program_list = self.program_dao.get_where_list()
-        recorded_list = self.recorded_dao.get_where_list()
-        for row_idx, row in enumerate(rows):
-
-            if row_idx == 0:
-                continue
-
-            if row[0].value is None:
-                logger.info('diskNoがないためSKIP')
-                continue
-            tv_data = TvRecordedData()
-            program_id = self.__check_program_id(7, row)
-
-            tv_data.channelNo = program_id // 1000
-            tv_data.channelSeq = program_id % 1000
-            tv_data.diskNo = row[0].value
-            tv_data.seqNo = row[1].value
-            tv_data.ripStatus = tv_data.get_rip_status(row[2].value, row[4].value)
-            tv_data.onAirDate = row[3].value
-            tv_data.timeFlag = False
-            tv_data.timeStr = row[12].value
-            tv_data.minute = self.__get_minute(tv_data.timeStr)
-            tv_data.detail = row[10].value
-            tv_data.source = 'excel'
-
-            # result_exist = self.recorded_dao.is_exist(tv_data.diskNo, tv_data.seqNo)
-
-            # if result_exist:
-            #     print('exist {} {}'.format(tv_data.diskNo, tv_data.seqNo))
-            #     continue
-
-            """
-            filter_list = list(filter(lambda program_data:
-                                      program_data.channelNo == tv_data.channelNo
-                                      and program_data.channelSeq == tv_data.channelSeq, program_list))
-
-            if len(filter_list) == 1:
-                tv_data.programName = filter_list[0].name
-                tv_data.print()
-            elif program_id == -1:
-                print('not found program id {} {}'.format(program_id, row[0]))
-            else:
-                print('{} channelNo/seq {}/{}'.format(len(filter_list), tv_data.channelNo, tv_data.channelSeq))
-                break
-            """
-
-            filter_list = list(filter(lambda recorded_data:
-                                      recorded_data.diskNo == str(tv_data.diskNo)
-                                      and recorded_data.seqNo == str(tv_data.seqNo), recorded_list))
-
-            if len(filter_list) == 1:
-                is_equal, remark = tv_data.get_update_column(filter_list[0])
-                if is_equal is False:
-                    tv_data.id = filter_list[0].id
-                    tv_data.remark = remark
-                    self.recorded_dao.update_all(tv_data)
-                    logger.info(f'update target {tv_data.diskNo} {tv_data.seqNo} [{remark}]')
-                # else:
-                #     print('same data {} {}'.format(tv_data.diskNo, tv_data.seqNo))
-            else:
-                self.recorded_dao.export(tv_data)
-                logger.info(f'register target {tv_data.diskNo} {tv_data.seqNo}')
-
-    def export2(self, sheet_name: str = ''):
+    def export(self, sheet_name: str = ''):
         """
         「TV録画2」のシートの主要な列以外の列に何が入っているかの確認用
         :return:
@@ -184,50 +119,85 @@ class TvContentsRegister:
             return
 
         wb = openpyxl.load_workbook(self.excel_file)
-        ws = wb[sheet_name]
-        max_row = ws.max_row + 1
-        # max_row = 10
-        rows = ws['A2':'J{}'.format(max_row)]
-        # rows = ws['A645':'J660']
-        # rows = ws['A1':'V9263']
-        # recorded_list = self.recorded_dao.get_where_list('WHERE created_at > "2020-08-01"')
+        sheet = wb[sheet_name]
+        max_row = sheet.max_row + 1
+        # rows = ws[f'A2':'J{max_row}']
+
         recorded_list = self.recorded_dao.get_where_list()
+        program_list = self.program_dao.get_where_list()
 
-        # program_list = self.program_dao.get_where_list()
-        for row_idx, row in enumerate(rows):
+        before_disk_label = ''
 
-            if row_idx == 0:
-                if row[0].value == 'Disk No':
-                    continue
+        col_no_disk_label = 1
+        col_no_seq_no = 2
+        col_no_rip_status = 3
+        col_no_on_air_date = 4
+        col_no_program_id = 6
+        col_no_on_air_time = 8
+        col_no_duration = 9
+        col_no_detail = 10
 
-            if row[0].value is None:
-                if row[1].value is None or row[3].value is None:
-                    logger.info(f'diskNo ( seqNo & onAirDate ) がないためSKIP {row[0]}')
-                    continue
-                else:
-                    disk_no = before_disk_no
-            else:
-                disk_no = str(row[0].value)
+        for row_idx in range(2, max_row):
+
+            disk_label = sheet.cell(row=row_idx, column=col_no_disk_label).value
+            seq_no = sheet.cell(row=row_idx, column=col_no_seq_no).value
+            rip_status = sheet.cell(row=row_idx, column=col_no_rip_status).value
+            if disk_label == 'Disk No':
+                continue
+
+            if seq_no is None or seq_no <= 0:
+                program_id = sheet.cell(row=row_idx, column=col_no_program_id).value
+                channel_no, channel_seq = self.__get_channel_info(str(program_id).zfill(6))
+                match_program_list = list(filter(lambda program_data:
+                                                 program_data.channelNo == channel_no
+                                                 and program_data.channelSeq == channel_seq, program_list))
+
+                program_name = ''
+                if len(match_program_list) == 1:
+                    program_name = match_program_list[0].name
+                elif len(match_program_list) > 1:
+                    program_name = f'MANY({len(match_program_list)}) {match_program_list[0].name}'
+                on_air_date = sheet.cell(row=row_idx, column=col_no_on_air_date).value
+                logger.info(f'[{row_idx}] diskNo ( seqNo & onAirDate ) がないためSKIP [{on_air_date}] 【{program_name}】')
+                continue
+
+            disk_no = self.recorded_tool.get_disk_no_label(disk_label, self.disk_dao)
+
+            if disk_no is None or disk_no <= 0:
+                disk_no = self.recorded_tool.get_disk_no_label(before_disk_label, self.disk_dao)
+                disk_label = before_disk_label
+            # if disk_no == 2778:
+            #     pass
+
+            if self.disk_no_start > disk_no or self.disk_no_end < disk_no:
+                before_disk_label = disk_label
+                continue
 
             tv_data = TvRecordedData()
-            program_id = self.__check_program_id(5, row)
 
-            tv_data.channelNo = program_id // 1000
-            tv_data.channelSeq = program_id % 1000
+            program_id = sheet.cell(row=row_idx, column=col_no_program_id).value
+            tv_data.channelNo, tv_data.channelSeq = self.__get_channel_info(str(program_id).zfill(6))
+
             tv_data.diskNo = disk_no
-            tv_data.seqNo = str(row[1].value)
-            tv_data.ripStatus = tv_data.get_rip_status(row[2].value, '')
-            tv_data.onAirDate, tv_data.timeFlag = self.__get_on_air_datetime(row, 3, 7)
-            tv_data.timeStr = row[8].value
-            tv_data.minute = self.__get_minute(tv_data.timeStr)
-            tv_data.detail = row[9].value
-            before_disk_no = tv_data.diskNo
+            tv_data.diskLabel = disk_label
+            tv_data.seqNo = str(seq_no)
+            tv_data.ripStatus = tv_data.get_rip_status(rip_status, '')
+            on_air_date = sheet.cell(row=row_idx, column=col_no_on_air_date).value
+            tv_data.timeStr = sheet.cell(row=row_idx, column=col_no_on_air_time).value
+            tv_data.onAirDate, tv_data.timeFlag = self.__get_on_air_datetime(on_air_date, tv_data.timeStr)
+            duration = sheet.cell(row=row_idx, column=col_no_duration).value
+            tv_data.minute = self.__get_minute(duration)
+            tv_data.detail = sheet.cell(row=row_idx, column=col_no_detail).value
+            before_disk_label = tv_data.diskLabel
 
             tv_data.source = 'excel'
 
             filter_list = list(filter(lambda recorded_data:
                                       recorded_data.diskNo == tv_data.diskNo
                                       and recorded_data.seqNo == tv_data.seqNo, recorded_list))
+            match_program_list = list(filter(lambda program_data:
+                                      program_data.channelNo == tv_data.channelNo
+                                      and program_data.channelSeq == tv_data.channelSeq, program_list))
 
             if len(filter_list) == 1:
                 is_equal, remark = tv_data.get_update_column(filter_list[0])
@@ -240,15 +210,25 @@ class TvContentsRegister:
                 # else:
                 #     print('same data {} {}'.format(tv_data.diskNo, tv_data.seqNo))
             else:
+                program_name = ''
+                if len(match_program_list) == 1:
+                    program_name = match_program_list[0].name
+                elif len(match_program_list) > 1:
+                    program_name = f'MANY({len(match_program_list)}) {match_program_list[0].name}'
                 logger.info(f'register target {tv_data.diskNo} {tv_data.seqNo}')
+                logger.info(f'  {tv_data.onAirDate} {tv_data.minute}分 [{tv_data.channelNo}:{tv_data.channelSeq}] 【{program_name}】')
                 if self.is_check is False:
                     self.recorded_dao.export(tv_data)
 
+        return
 
 if __name__ == '__main__':
-    tv_contents_register = TvContentsRegister()
+    # range_disk_no = '2780,2789'
+    range_disk_no = '2000,2789'
+    tv_contents_register = TvContentsRegister(range_disk_no)
+    # tv_contents_register = TvContentsRegister(range_disk_no, False)
     # tv_contents_register.export()
-    tv_contents_register.export2('TV録画2')
+    # tv_contents_register.export2('TV録画2')
     # tv_contents_register.export2('0001-1114')
-    tv_contents_register.export2('ZIP')
-    tv_contents_register.export2('2030')
+    tv_contents_register.export('ZIP')
+    # tv_contents_register.export2('2030')

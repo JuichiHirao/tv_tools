@@ -19,8 +19,8 @@ class TvRecordedData:
     def __init__(self):
 
         self.id = -1
-        self.diskLabel = ''
         self.diskNo = -1
+        self.diskLabel = ''
         self.seqNo = ''
         self.ripStatus = ''
         self.onAirDate = None
