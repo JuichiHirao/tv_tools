@@ -244,6 +244,7 @@ class TvProgramData:
         self.endDate = None
         self.endDateStr = ''
         self.detail = ''
+        self.category = ''
         self.createdAt = None
         self.updatedAt = None
 

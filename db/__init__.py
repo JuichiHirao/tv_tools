@@ -526,16 +526,19 @@ class TvProgramDao(MysqlBase):
 
         sql = 'INSERT INTO tv.program (channel_no' \
               '  , channel_seq, `name`, short_name, start_date' \
-              '  , start_date_str, end_date, end_date_str, detail' \
+              '  , start_date_str, end_date, end_date_str, category' \
+              '  , detail' \
               '  ) ' \
               ' VALUES(%s ' \
               '  , %s, %s, %s, %s' \
               '  , %s, %s, %s, %s' \
+              '  , %s' \
               ' )'
 
         self.cursor.execute(sql, (program_data.channelNo
                                   , program_data.channelSeq, program_data.name, program_data.shortName, program_data.startDate
-                                  , program_data.startDateStr, program_data.endDate, program_data.endDateStr, program_data.detail
+                                  , program_data.startDateStr, program_data.endDate, program_data.endDateStr, program_data.category
+                                  , program_data.detail
                                   )
                             )
 
@@ -554,7 +557,8 @@ class TvProgramDao(MysqlBase):
               , start_date = %s 
               , start_date_str = %s 
               , end_date = %s 
-              , end_date_str = %s 
+              , end_date_str = %s
+              , category = %s 
               , detail = %s 
             WHERE id = %s
         """
@@ -565,6 +569,7 @@ class TvProgramDao(MysqlBase):
                                   , program_data.startDateStr
                                   , program_data.endDate
                                   , program_data.endDateStr
+                                  , program_data.category
                                   , program_data.detail
                                   , program_id))
 

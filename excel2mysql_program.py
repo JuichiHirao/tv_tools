@@ -27,8 +27,8 @@ class TvProgramRegister:
         # self.is_clear = True
         self.is_clear = False
 
-        self.is_check = True
-        # self.is_check = False
+        # self.is_check = True
+        self.is_check = False
 
     def export(self):
 
@@ -41,7 +41,8 @@ class TvProgramRegister:
         col_no_short_name = 4
         col_no_start_date = 5
         col_no_end_date = 6
-        col_no_detail = 7
+        col_no_category = 7
+        col_no_detail = 8
         wb = openpyxl.load_workbook(self.excel_file)
         sheet = wb['番組名']
         max_row = sheet.max_row + 1
@@ -55,11 +56,12 @@ class TvProgramRegister:
 
             is_update = False
             program_data = TvProgramData()
-            program_data.channelNo = program_number // 1000
+            program_data.channelNo = int(program_number // 1000)
             program_data.channelSeq = program_number % 1000
 
-            if program_data.channelNo == 663 and program_data.channelSeq == 472:
-                idx_idx = 0
+            if program_data.channelNo == 663 and program_data.channelSeq >= 925:
+                # idx_idx = 0
+                continue
 
             exist_data = self.program_dao.get_data(program_data.channelNo, program_data.channelSeq)
 
@@ -89,6 +91,12 @@ class TvProgramRegister:
                 is_update = True
 
             program_data.set_date(program_data.startDate, program_data.endDate)
+
+            program_data.category = sheet.cell(row=row_idx, column=col_no_category).value
+            if exist_data is not None and exist_data.category != program_data.category:
+                if program_data.category is not None and len(program_data.category) > 0:
+                    update_column_list.append(f'category {program_data.category} <- {exist_data.category}')
+                    is_update = True
 
             program_data.detail = sheet.cell(row=row_idx, column=col_no_detail).value
             if exist_data is not None and exist_data.detail != program_data.detail:

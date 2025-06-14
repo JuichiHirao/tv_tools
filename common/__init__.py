@@ -49,7 +49,7 @@ class DiskTool:
         elif 2444 <= disk_no <= 2775:
             disk_path = 'V:\\BDR-Backup'
         else:
-            disk_path = 'Y:\\BDR-Backup'
+            disk_path = 'U:\\BDR-Backup'
 
         return disk_path
 

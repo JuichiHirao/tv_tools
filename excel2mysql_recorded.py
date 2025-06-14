@@ -1,3 +1,5 @@
+import os.path
+
 import openpyxl
 import sys
 import traceback
@@ -12,8 +14,9 @@ str_date = datetime.now().strftime('%Y%m%d')
 logger = getLogger("logger")
 logger.setLevel(DEBUG)
 
-log_filename = 'log\\tv_recorded_{}.log'.format(str_date)
-handler_file = FileHandler(filename=log_filename, encoding='utf-8')
+log_filename = f'{str_date}_tv_recorded.log'
+log_pathname = os.path.join('log', log_filename)
+handler_file = FileHandler(filename=log_pathname, encoding='utf-8')
 handler_file.setFormatter(Formatter("%(asctime)s %(levelname)4s %(message)s"))
 logger.addHandler(handler_file)
 handler_stream = StreamHandler(sys.stdout)
@@ -43,7 +46,7 @@ class TvContentsRegister:
             else:
                 logger.warning(f'range_disk_no {range_disk_no} is invalid')
         self.range_disk_no = range_disk_no
-        logger.info(f'range_disk_no start [{self.disk_no_start}] end [{self.disk_no_end}]')
+        logger.info(f'range_disk_no start [{self.disk_no_start}] end [{self.disk_no_end}] is_check [{is_check}]')
         self.is_check = is_check
 
     def __get_channel_info(self, program_id_str: str = ''):
@@ -207,6 +210,8 @@ class TvContentsRegister:
                     logger.info(f'update target {tv_data.diskNo} {tv_data.seqNo} [{remark}]')
                     if self.is_check is False:
                         self.recorded_dao.update_all(tv_data)
+                    else:
+                        logger.info(f'dry update target {tv_data.diskNo} {tv_data.seqNo}')
                 # else:
                 #     print('same data {} {}'.format(tv_data.diskNo, tv_data.seqNo))
             else:
@@ -215,20 +220,22 @@ class TvContentsRegister:
                     program_name = match_program_list[0].name
                 elif len(match_program_list) > 1:
                     program_name = f'MANY({len(match_program_list)}) {match_program_list[0].name}'
-                logger.info(f'register target {tv_data.diskNo} {tv_data.seqNo}')
                 logger.info(f'  {tv_data.onAirDate} {tv_data.minute}分 [{tv_data.channelNo}:{tv_data.channelSeq}] 【{program_name}】')
                 if self.is_check is False:
                     self.recorded_dao.export(tv_data)
+                    logger.info(f'register target {tv_data.diskNo} {tv_data.seqNo}')
+                else:
+                    logger.info(f'dry register target {tv_data.diskNo} {tv_data.seqNo}')
 
         return
 
 if __name__ == '__main__':
     # range_disk_no = '2780,2789'
-    range_disk_no = '2000,2789'
-    tv_contents_register = TvContentsRegister(range_disk_no)
+    range_disk_no = '2805,2889'
+    tv_contents_register = TvContentsRegister(range_disk_no, False)
     # tv_contents_register = TvContentsRegister(range_disk_no, False)
     # tv_contents_register.export()
     # tv_contents_register.export2('TV録画2')
     # tv_contents_register.export2('0001-1114')
     tv_contents_register.export('ZIP')
-    # tv_contents_register.export2('2030')
+    tv_contents_register.export('2030')
