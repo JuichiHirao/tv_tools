@@ -4,7 +4,7 @@ import csv
 import re
 import sys
 from db import TvRecordedDao, TvProgramDao
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import getLogger, DEBUG, Formatter, FileHandler, StreamHandler
 
 
@@ -54,6 +54,27 @@ class TvContentsRegister:
                 continue
             self.search_condition_list.append(row)
             # print(row)
+
+    def get_list_by_date(self, search_date_str: str = ''):
+
+        search_date = datetime.strptime(search_date_str, '%Y-%m-%d')
+        from_search_date = search_date
+        to_search_date = timedelta(days=1) + search_date
+
+        recorded_list = self.tv_recorded_dao.get_where_list('WHERE on_air_date >= %s AND on_air_date < %s' , [from_search_date, to_search_date])
+
+        for recorded_data in recorded_list:
+            program_list = self.tv_program_dao.get_where_list('WHERE channel_no = %s AND channel_seq = %s'
+                                                              , [recorded_data.channelNo, recorded_data.channelSeq])
+            if program_list is None or len(program_list) <= 0:
+                logger.info(f'【{recorded_data.onAirDate}】 {recorded_data.channelNo:4d} {recorded_data.channelSeq:4d} 対象番組無し')
+                # logger.info(recorded_data.print())
+                pass
+            else:
+                logger.info(f'【{recorded_data.onAirDate}】 {recorded_data.channelNo:4d} {recorded_data.channelSeq:4d}  {program_list[0].name}')
+                # logger.info(f'    {recorded_data.detail[0:40]}')
+
+        return
 
     def get_list(self, keyword: str = ''):
 
@@ -139,6 +160,7 @@ if __name__ == '__main__':
     channel_seq = 0
 
     if len(sys.argv) < 2:
+        logger.info('param1 yyyy-mm-dd 例) 2025-11-15')
         logger.info('param1 [pgm or list or channel_no], param2 [channel_seq]')
         logger.info('param1 p[0-9]{1,3} keyword(任意)')
         logger.info('param1 channel_no[0-9]{1,4}, param2 [channel_seq]')
@@ -152,6 +174,11 @@ if __name__ == '__main__':
 
     if len(sys.argv) >= 2:
         param1 = sys.argv[1]
+        m_search_date = re.match('^[0-9]{4}-[0-9]{2}-[0-9]{2}$', param1)
+        if m_search_date:
+            TvContentsRegister().get_list_by_date(param1)
+            sys.exit(0)
+
         m_programmable = re.match('^[pP][0-9]+$', param1)
 
         p_no = -1
