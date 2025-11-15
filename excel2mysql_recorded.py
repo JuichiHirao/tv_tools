@@ -112,7 +112,7 @@ class TvContentsRegister:
 
         return on_air_datetime, is_time_flag
 
-    def export(self, sheet_name: str = ''):
+    def export(self, sheet_name: str = '', skip_row: int = -1):
         """
         「TV録画2」のシートの主要な列以外の列に何が入っているかの確認用
         :return:
@@ -140,7 +140,11 @@ class TvContentsRegister:
         col_no_duration = 9
         col_no_detail = 10
 
+        logger.info(f'SKIP {skip_row}  max_row {max_row}')
         for row_idx in range(2, max_row):
+
+            if row_idx <= skip_row:
+                continue
 
             disk_label = sheet.cell(row=row_idx, column=col_no_disk_label).value
             seq_no = sheet.cell(row=row_idx, column=col_no_seq_no).value
@@ -231,11 +235,11 @@ class TvContentsRegister:
 
 if __name__ == '__main__':
     # range_disk_no = '2780,2789'
-    range_disk_no = '2805,2889'
+    range_disk_no = '2864,2999'
     tv_contents_register = TvContentsRegister(range_disk_no, False)
     # tv_contents_register = TvContentsRegister(range_disk_no, False)
     # tv_contents_register.export()
-    # tv_contents_register.export2('TV録画2')
+    # tv_contents_register.export('TV録画2', 15000)
     # tv_contents_register.export2('0001-1114')
     tv_contents_register.export('ZIP')
-    tv_contents_register.export('2030')
+    # tv_contents_register.export('2030')

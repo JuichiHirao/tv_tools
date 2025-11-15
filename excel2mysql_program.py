@@ -1,3 +1,5 @@
+import re
+
 import openpyxl
 import sys
 from db import TvProgramDao
@@ -56,12 +58,18 @@ class TvProgramRegister:
 
             is_update = False
             program_data = TvProgramData()
-            program_data.channelNo = int(program_number // 1000)
-            program_data.channelSeq = program_number % 1000
+            if re.search('^663[0-9]{4}', str(program_number)):
+                program_data.channelNo = 663
+                program_data.channelSeq = program_number % 10000
+                logger.info(f'663_1000UP check program_data {program_data.channelNo} {program_data.channelSeq}')
+            else:
+                program_data.channelNo = int(program_number // 1000)
+                program_data.channelSeq = program_number % 1000
+                logger.info(f'check program_data {program_data.channelNo} {program_data.channelSeq}')
 
-            if program_data.channelNo == 663 and program_data.channelSeq >= 925:
+            # if program_data.channelNo == 663 and program_data.channelSeq >= 944:
                 # idx_idx = 0
-                continue
+                # continue
 
             exist_data = self.program_dao.get_data(program_data.channelNo, program_data.channelSeq)
 
